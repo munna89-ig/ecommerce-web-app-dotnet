@@ -1,0 +1,155 @@
+@model Pearl_Poetry.ViewModels.Account.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Create Account";
+    ViewData["ShowChrome"] = true;
+}
+
+<link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+
+<div class="auth-wrap">
+    <div class="auth-card">
+
+        <!-- Brand side -->
+        <div class="auth-brand">
+            <div>
+                <img src="~/images/logo.png" alt="@Site.Name">
+                <h2>Join<br />@Site.Name</h2>
+                <p>Create a free account to shop faster, save your favourites and follow every order.</p>
+
+                <ul class="auth-perks">
+                    <li><i class="fa-solid fa-bag-shopping"></i> Quick checkout with saved details</li>
+                    <li><i class="fa-regular fa-heart"></i> Keep a wishlist across devices</li>
+                    <li><i class="fa-solid fa-box"></i> Track orders and returns in one place</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Form side -->
+        <div class="auth-form">
+            <h1>Create account</h1>
+            <p class="auth-sub">It only takes a minute.</p>
+
+            <div asp-validation-summary="ModelOnly" class="pp-alert"></div>
+
+            <form asp-controller="Account" asp-action="Register" method="post" novalidate>
+                @Html.AntiForgeryToken()
+
+                <!-- Full Name -->
+                <div class="field">
+                    <label asp-for="Name">Full Name</label>
+                    <div class="input-icon">
+                        <i class="fa-regular fa-user"></i>
+                        <input asp-for="Name" placeholder="Your full name" autocomplete="name" />
+                    </div>
+                    <span asp-validation-for="Name"></span>
+                </div>
+
+                <!-- Email -->
+                <div class="field">
+                    <label asp-for="Email">Email</label>
+                    <div class="input-icon">
+                        <i class="fa-regular fa-envelope"></i>
+                        <input asp-for="Email" type="email" placeholder="you@example.com" autocomplete="email" />
+                    </div>
+                    <span asp-validation-for="Email"></span>
+                </div>
+
+                <!-- Phone -->
+                <div class="field">
+                    <label asp-for="Phone">Phone <span class="optional">(optional)</span></label>
+                    <div class="input-icon">
+                        <i class="fa-solid fa-phone"></i>
+                        <input asp-for="Phone" type="tel" placeholder="01XXXXXXXXX" autocomplete="tel" />
+                    </div>
+                    <span asp-validation-for="Phone"></span>
+                </div>
+
+                <!-- Password + Confirm -->
+                <div class="field-row">
+                    <div class="field">
+                        <label asp-for="Password">Password</label>
+                        <div class="input-icon">
+                            <i class="fa-solid fa-lock"></i>
+                            <input asp-for="Password" id="regPassword" placeholder="Min. 6 characters" autocomplete="new-password" />
+                            <button type="button" class="pw-toggle" data-target="regPassword" aria-label="Show password">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Password"></span>
+                    </div>
+
+                    <div class="field">
+                        <label asp-for="ConfirmPassword">Confirm Password</label>
+                        <div class="input-icon">
+                            <i class="fa-solid fa-lock"></i>
+                            <input asp-for="ConfirmPassword" id="regConfirm" placeholder="Repeat password" autocomplete="new-password" />
+                            <button type="button" class="pw-toggle" data-target="regConfirm" aria-label="Show password">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ConfirmPassword"></span>
+                    </div>
+                </div>
+
+                <!-- Password strength -->
+                <div class="pw-strength" id="pwStrength" aria-live="polite">
+                    <div class="pw-bar"><span></span></div>
+                    <small></small>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fa-solid fa-user-plus"></i> Create Account
+                </button>
+            </form>
+
+            <div class="auth-divider">OR</div>
+
+            <p class="auth-alt">
+                Already have an account?
+                <a asp-controller="Account" asp-action="Login">Sign in</a>
+            </p>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // password show / hide
+        document.querySelectorAll('.pw-toggle[data-target]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const input = document.getElementById(btn.dataset.target);
+                if (!input) return;
+                const show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+                btn.querySelector('i').className = show ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+                btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            });
+        });
+
+        // password strength meter
+        (function () {
+            const input = document.getElementById('regPassword');
+            const box = document.getElementById('pwStrength');
+            if (!input || !box) return;
+
+            const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+
+            input.addEventListener('input', function () {
+                const v = input.value;
+                let score = 0;
+                if (v.length >= 6) score++;
+                if (v.length >= 10) score++;
+                if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+                if (/\d/.test(v) && /[^A-Za-z0-9]/.test(v)) score++;
+                if (v.length > 0 && v.length < 6) score = 1;
+
+                box.dataset.level = v.length ? score : 0;
+                box.querySelector('small').textContent = v.length ? labels[score] : '';
+            });
+        })();
+    </script>
+}

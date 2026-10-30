@@ -1,0 +1,189 @@
+﻿@model Pearl_Poetry.ViewModels.Admin.Product.ProductListViewModel
+
+@{
+    ViewData["Title"] = "All Products";
+}
+
+<link rel="stylesheet" href="~/css/AllProducts.css" asp-append-version="true" />
+
+<div class="products-page">
+
+    @if (TempData["Success"] != null)
+    {
+        <div style="padding:12px 16px;margin-bottom:16px;border-radius:10px;background:rgba(46,160,67,.12);color:#2ea043;">
+            <i class="fa-solid fa-circle-check"></i> @TempData["Success"]
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div style="padding:12px 16px;margin-bottom:16px;border-radius:10px;background:rgba(224,82,82,.12);color:#e05252;">
+            <i class="fa-solid fa-circle-exclamation"></i> @TempData["Error"]
+        </div>
+    }
+
+    <div class="page-header">
+        <div>
+            <h1>All Products</h1>
+            <p>@Model.TotalItems total products</p>
+        </div>
+        <a asp-area="Admin" asp-controller="Product" asp-action="AddProduct" class="btn-primary">
+            <i class="fa-solid fa-plus"></i> Add Product
+        </a>
+    </div>
+
+    <div class="table-card">
+
+        <div class="table-toolbar">
+            <div class="search-input">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="productSearch" placeholder="Search products...">
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="products-table" id="productsTable">
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>SKU</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    @foreach (var p in Model.Products)
+                    {
+                        string cover = string.IsNullOrWhiteSpace(p.CoverImagePath)
+                        ? "/images/categories/fashion.jpg"
+                        : p.CoverImagePath;
+
+                        bool hasDiscount = p.DiscountPrice.HasValue && p.DiscountPrice > 0 && p.DiscountPrice < p.Price;
+
+                        <tr>
+                            <td>
+                                <img src="@cover" alt="@p.Title" class="row-img"
+                                     onerror="this.onerror=null;this.src='/images/categories/fashion.jpg';">
+                            </td>
+                            <td>
+                                <div class="row-title">@p.Title</div>
+                            </td>
+                            <td>@p.CategoryName</td>
+                            <td>@p.Sku</td>
+                            <td>
+                                @if (hasDiscount)
+                                {
+                                    <span class="price-old">৳@(p.Price.ToString("N0"))</span>
+                                    <span class="price-now">৳@(p.DiscountPrice!.Value.ToString("N0"))</span>
+                                }
+                                else
+                                {
+                                    <span class="price-now">৳@(p.Price.ToString("N0"))</span>
+                                }
+                            </td>
+                            <td>
+                                @if (p.Quantity <= 0)
+                                {
+                                    <span class="badge badge-danger">Out of stock</span>
+                                }
+                                else if (p.Quantity <= 5)
+                                {
+                                    <span class="badge badge-warning">@p.Quantity left</span>
+                                }
+                                else
+                                {
+                                    <span>@p.Quantity</span>
+                                }
+                            </td>
+                            <td>
+                                @if (p.IsActive)
+                                {
+                                    <span class="badge badge-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-muted">Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="row-actions">
+                                    <a asp-area="Admin" asp-controller="Product" asp-action="EditProduct" asp-route-id="@p.Id" title="Edit">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+
+                                    <!-- normal form POST: the form tag helper adds the anti-forgery token itself -->
+                                    <form asp-area="Admin" asp-controller="Product" asp-action="DeleteProduct"
+                                          asp-route-id="@p.Id"
+                                          method="post"
+                                          class="js-delete-form"
+                                          data-title="@p.Title"
+                                          style="display:inline-flex;margin:0;">
+                                        <button type="submit" title="Delete">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.Products.Count == 0)
+        {
+            <div class="empty-state">
+                <i class="fa-solid fa-box-open"></i>
+                <p>No products found</p>
+            </div>
+        }
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="pagination">
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    <a asp-area="Admin" asp-controller="Product" asp-action="Index" asp-route-page="@i"
+                       class="page-link @(i == Model.CurrentPage ? "active" : "")">@i</a>
+                }
+            </div>
+        }
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            // ---------- live search in the table ----------
+            const searchInput = document.getElementById('productSearch');
+            const table = document.getElementById('productsTable');
+
+            if (searchInput && table) {
+                const rows = table.querySelectorAll('tbody tr');
+
+                searchInput.addEventListener('input', function () {
+                    const term = this.value.trim().toLowerCase();
+                    rows.forEach(function (row) {
+                        row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+                    });
+                });
+            }
+
+            // ---------- confirm before delete ----------
+            document.querySelectorAll('.js-delete-form').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    const title = form.dataset.title || 'this product';
+                    if (!confirm('Delete "' + title + '"? This cannot be undone.')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        })();
+    </script>
+}

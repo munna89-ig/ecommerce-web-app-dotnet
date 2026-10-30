@@ -1,0 +1,267 @@
+@model Pearl_Poetry.ViewModels.Admin.Dashboard.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+<div class="min-h-screen bg-base-200 p-6">
+
+    <!-- ========================================================= -->
+    <!-- PAGE HEADER -->
+    <!-- ========================================================= -->
+
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-base-content">Dashboard</h1>
+        <p class="text-base-content/60 mt-1">Welcome back, @Model.AdminName!</p>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- STATISTICS CARDS -->
+    <!-- ========================================================= -->
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+        <!-- TOTAL USERS -->
+        <div class="card bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title text-sm font-semibold text-base-content/60">Total Users</h2>
+                <p class="text-3xl font-bold text-primary">@Model.TotalUsers</p>
+                <p class="text-sm text-base-content/50">+@Model.NewUsersThisMonth this month</p>
+            </div>
+        </div>
+
+        <!-- TOTAL ORDERS -->
+        <div class="card bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title text-sm font-semibold text-base-content/60">Total Orders</h2>
+                <p class="text-3xl font-bold text-info">@Model.TotalOrders</p>
+                <p class="text-sm text-base-content/50">@Model.PendingOrders pending</p>
+            </div>
+        </div>
+
+        <!-- TOTAL REVENUE -->
+        <div class="card bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title text-sm font-semibold text-base-content/60">Total Revenue</h2>
+                <p class="text-3xl font-bold text-success">@Model.TotalRevenue.ToString("N2") BDT</p>
+                <p class="text-sm text-base-content/50">All time</p>
+            </div>
+        </div>
+
+        <!-- TOTAL PRODUCTS -->
+        <div class="card bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title text-sm font-semibold text-base-content/60">Total Products</h2>
+                <p class="text-3xl font-bold text-secondary">@Model.TotalProducts</p>
+                <p class="text-sm text-base-content/50">@Model.OutOfStockProducts out of stock</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- SALES + QUICK STATS -->
+    <!-- ========================================================= -->
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+        <!-- SALES CHART -->
+        <div class="lg:col-span-2 card bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title text-lg">Sales (Last 7 Days)</h2>
+
+                @{
+                    var maxSale = Model.SalesChart.Any()
+                    ? Model.SalesChart.Max(x => x.Amount)
+                    : 0m;
+                }
+
+                <div class="h-72 flex items-end gap-3 pt-8">
+
+                    @foreach (var sale in Model.SalesChart)
+                    {
+                        var percentage =
+                        maxSale > 0
+                        ? (double)((sale.Amount / maxSale) * 100)
+                        : 0;
+
+                        if (sale.Amount > 0 && percentage < 5)
+                        {
+                            percentage = 5;
+                        }
+
+                        <div class="flex-1 h-full flex flex-col justify-end items-center gap-2">
+
+                            <!-- AMOUNT -->
+                            <span class="text-xs text-base-content/60">@sale.Amount.ToString("N0")</span>
+
+                            <!-- BAR -->
+                            <div class="w-full flex justify-center h-full items-end">
+                                <div class="tooltip w-full max-w-12" data-tip="@sale.DayName: @sale.Amount.ToString("N0") BDT">
+                                    <div class="w-full bg-primary rounded-t-lg transition-all duration-300 hover:opacity-80"
+                                         style="height: @(percentage)%;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- DAY -->
+                            <span class="text-xs font-medium">@sale.DayName</span>
+
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
+
+        <!-- QUICK STATS -->
+        <div class="card bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title text-lg">Quick Stats</h2>
+
+                <div class="space-y-5 mt-4">
+
+                    <div class="flex justify-between items-center">
+                        <span class="text-base-content/70">Active Products</span>
+                        <span class="badge badge-primary">@Model.ActiveProducts</span>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <span class="text-base-content/70">Low Stock</span>
+                        <span class="badge badge-warning">@Model.LowStockProducts</span>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <span class="text-base-content/70">Pending Orders</span>
+                        <span class="badge badge-info">@Model.PendingOrders</span>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <span class="text-base-content/70">Unpaid Payments</span>
+                        <span class="badge badge-warning">@Model.UnpaidPayments</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- RECENT ORDERS + RECENT ACTIVITY -->
+    <!-- ========================================================= -->
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- RECENT ORDERS -->
+        <div class="card bg-base-100 shadow-md">
+            <div class="card-body">
+
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title text-lg">Recent Orders</h2>
+                    <a asp-area="Admin" asp-controller="Order" asp-action="Index" class="btn btn-sm btn-ghost">
+                        View All
+                    </a>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra">
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Customer</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.RecentOrders.Any())
+                            {
+                                foreach (var order in Model.RecentOrders)
+                                {
+                                    <tr class="hover">
+
+                                        <td>
+                                            <a asp-area="Admin" asp-controller="Order" asp-action="Details"
+                                               asp-route-id="@order.Id" class="link link-primary font-medium">
+                                                #@order.OrderNumber
+                                            </a>
+                                        </td>
+
+                                        <td>@order.CustomerName</td>
+
+                                        <td>@order.TotalAmount.ToString("N2") BDT</td>
+
+                                        <td>
+                                            @if (order.PaymentStatus.Equals("completed", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <span class="badge badge-success">Completed</span>
+                                            }
+                                            else if (order.PaymentStatus.Equals("failed", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <span class="badge badge-error">Failed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-warning">@order.PaymentStatus</span>
+                                            }
+                                        </td>
+
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center py-8 text-base-content/50">
+                                        No recent orders.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RECENT ACTIVITY -->
+        <div class="card bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title text-lg">Recent Activity</h2>
+
+                <div class="space-y-4 mt-4">
+
+                    @if (Model.RecentActivities.Any())
+                    {
+                        foreach (var activity in Model.RecentActivities)
+                        {
+                            <div class="flex gap-4 pb-4 border-b border-base-300">
+
+                                <div>
+                                    <span class="badge badge-sm badge-outline">@activity.Action</span>
+                                </div>
+
+                                <div class="flex-1">
+                                    <p class="text-sm text-base-content/80">@activity.Description</p>
+                                    <p class="text-xs text-base-content/50 mt-1">@activity.TimeAgo</p>
+                                </div>
+
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-8">
+                            <p class="text-base-content/50">No recent activity.</p>
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>

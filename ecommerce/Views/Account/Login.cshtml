@@ -1,0 +1,121 @@
+@model Pearl_Poetry.ViewModels.Account.LoginViewModel
+
+@{
+    ViewData["Title"] = "Login";
+    ViewData["ShowChrome"] = true;   // navbar + footer + Home.css + Shop.css (layout theke)
+}
+
+<link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+
+<div class="auth-wrap">
+    <div class="auth-card">
+
+        <!-- Brand side -->
+        <div class="auth-brand">
+            <div>
+                <img src="~/images/logo.png" alt="@Site.Name">
+                <h2>Welcome back to<br />@Site.Name</h2>
+                <p>Log in to track your orders, keep your wishlist and check out faster.</p>
+
+                <ul class="auth-perks">
+                    <li><i class="fa-solid fa-truck-fast"></i> Fast delivery all over Bangladesh</li>
+                    <li><i class="fa-regular fa-heart"></i> Save favourites to your wishlist</li>
+                    <li><i class="fa-solid fa-shield-halved"></i> Secure checkout with bKash &amp; COD</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Form side -->
+        <div class="auth-form">
+            <h1>Sign in</h1>
+            <p class="auth-sub">Enter your email and password to continue.</p>
+
+            <!-- Success Message -->
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="pp-alert is-success">
+                    <i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]
+                </div>
+            }
+
+            <!-- General Error ("Invalid email or password.") - empty hole nije theke hide thake -->
+            <div asp-validation-summary="ModelOnly" class="pp-alert"></div>
+
+            <!-- Login Form -->
+            <form asp-controller="Account" asp-action="Login" method="post" novalidate>
+                @Html.AntiForgeryToken()
+
+                <!-- Email -->
+                <div class="field">
+                    <label asp-for="Email">Email</label>
+                    <div class="input-icon">
+                        <i class="fa-regular fa-envelope"></i>
+                        <input asp-for="Email"
+                               type="email"
+                               placeholder="you@example.com"
+                               autocomplete="email" />
+                    </div>
+                    <span asp-validation-for="Email"></span>
+                </div>
+
+                <!-- Password -->
+                <div class="field">
+                    <label asp-for="Password">Password</label>
+                    <div class="input-icon">
+                        <i class="fa-solid fa-lock"></i>
+                        <input asp-for="Password"
+                               id="loginPassword"
+                               placeholder="Enter your password"
+                               autocomplete="current-password" />
+                        <button type="button" class="pw-toggle" id="pwToggle" aria-label="Show password">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Password"></span>
+                </div>
+
+                <!-- Remember Me -->
+                <div class="auth-row">
+                    <label class="remember">
+                        <input asp-for="RememberMe" type="checkbox" />
+                        Remember me
+                    </label>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fa-solid fa-right-to-bracket"></i> Login
+                </button>
+            </form>
+
+            <!-- Register -->
+            <div class="auth-divider">OR</div>
+
+            <p class="auth-alt">
+                Don't have an account?
+                <a asp-controller="Account" asp-action="Register">Create an account</a>
+            </p>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // password show / hide
+        (function () {
+            const input = document.getElementById('loginPassword');
+            const btn = document.getElementById('pwToggle');
+            if (!input || !btn) return;
+
+            btn.addEventListener('click', function () {
+                const show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+                btn.querySelector('i').className = show ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+                btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            });
+        })();
+    </script>
+}

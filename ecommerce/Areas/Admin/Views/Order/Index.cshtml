@@ -1,0 +1,384 @@
+@model List<Pearl_Poetry.ViewModels.Order.OrderListViewModel>
+
+@{
+    ViewData["Title"] = "Orders";
+
+    int totalPages = ViewBag.TotalPages ?? 1;
+    int currentPage = ViewBag.CurrentPage ?? 1;
+
+    string search = ViewBag.Search ?? "";
+    string selectedStatus = ViewBag.Status ?? "";
+    string selectedPaymentStatus = ViewBag.PaymentStatus ?? "";
+
+    var statuses = ViewBag.OrderStatuses
+        as List<string> ?? new List<string>();
+}
+
+<div class="p-6">
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+
+        <div>
+            <h1 class="text-3xl font-bold">
+                Orders
+            </h1>
+
+            <p class="text-base-content/60">
+                Manage customer orders and order status.
+            </p>
+        </div>
+
+    </div>
+
+
+    <!-- Filters -->
+    <div class="card bg-base-100 shadow-sm mb-6">
+
+        <div class="card-body">
+
+            <form method="get"
+                  asp-action="Index"
+                  class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                <!-- Search -->
+                <div>
+                    <label class="label">
+                        <span class="label-text">
+                            Search
+                        </span>
+                    </label>
+
+                    <input type="text"
+                           name="search"
+                           value="@search"
+                           placeholder="Order number, name, phone..."
+                           class="input input-bordered w-full" />
+                </div>
+
+
+                <!-- Order Status -->
+                <div>
+                    <label class="label">
+                        <span class="label-text">
+                            Order Status
+                        </span>
+                    </label>
+
+                    <select name="status"
+                            class="select select-bordered w-full">
+
+                        <option value="">
+                            All Statuses
+                        </option>
+
+                        @foreach (var status in statuses)
+                        {
+                            <option value="@status"
+                                    selected="@(selectedStatus == status)">
+                                @status.Replace("_", " ")
+                            </option>
+                        }
+
+                    </select>
+                </div>
+
+
+                <!-- Payment Status -->
+                <div>
+                    <label class="label">
+                        <span class="label-text">
+                            Payment Status
+                        </span>
+                    </label>
+
+                    <select name="paymentStatus"
+                            class="select select-bordered w-full">
+
+                        <option value="">
+                            All Payments
+                        </option>
+
+                        <option value="unpaid"
+                                selected="@(selectedPaymentStatus == "unpaid")">
+                            Unpaid
+                        </option>
+
+                        <option value="pending_verification"
+                                selected="@(selectedPaymentStatus == "pending_verification")">
+                            Pending Verification
+                        </option>
+
+                        <option value="paid"
+                                selected="@(selectedPaymentStatus == "paid")">
+                            Paid
+                        </option>
+
+                        <option value="failed"
+                                selected="@(selectedPaymentStatus == "failed")">
+                            Failed
+                        </option>
+
+                        <option value="refunded"
+                                selected="@(selectedPaymentStatus == "refunded")">
+                            Refunded
+                        </option>
+
+                    </select>
+                </div>
+
+
+                <!-- Button -->
+                <div class="flex items-end gap-2">
+
+                    <button type="submit"
+                            class="btn btn-primary flex-1">
+                        Search
+                    </button>
+
+                    <a asp-action="Index"
+                       class="btn btn-ghost">
+                        Clear
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- Orders Table -->
+    <div class="card bg-base-100 shadow-sm">
+
+        <div class="card-body p-0">
+
+            <div class="overflow-x-auto">
+
+                <table class="table">
+
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Customer</th>
+                            <th>Total</th>
+                            <th>Order Status</th>
+                            <th>Payment</th>
+                            <th>Date</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="7"
+                                    class="text-center py-12">
+
+                                    <div class="text-base-content/50">
+                                        No orders found.
+                                    </div>
+
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var order in Model)
+                            {
+                                <tr>
+
+                                    <!-- Order -->
+                                    <td>
+                                        <a asp-action="Details"
+                                           asp-route-id="@order.Id"
+                                           class="font-semibold link link-primary">
+
+                                            @order.OrderNumber
+
+                                        </a>
+
+                                        <div class="text-xs text-base-content/50">
+                                            ID: @order.Id
+                                        </div>
+                                    </td>
+
+
+                                    <!-- Customer -->
+                                    <td>
+
+                                        <div class="font-medium">
+                                            @order.CustomerName
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(order.CustomerEmail))
+                                        {
+                                            <div class="text-xs text-base-content/50">
+                                                @order.CustomerEmail
+                                            </div>
+                                        }
+
+                                        @if (!string.IsNullOrWhiteSpace(order.CustomerPhone))
+                                        {
+                                            <div class="text-xs text-base-content/50">
+                                                @order.CustomerPhone
+                                            </div>
+                                        }
+
+                                    </td>
+
+
+                                    <!-- Total -->
+                                    <td>
+                                        <span class="font-semibold">
+                                            &#2547;@order.TotalAmount.ToString("N2")
+                                        </span>
+                                    </td>
+
+
+                                    <!-- Order Status -->
+                                    <td>
+
+                                        @{
+                                            string statusClass =
+                                            order.Status switch
+                                            {
+                                                "pending" =>
+                                                                    "badge-warning",
+
+                                                "confirmed" =>
+                                                                    "badge-info",
+
+                                                "processing" =>
+                                                                    "badge-primary",
+
+                                                "shipped" =>
+                                                                    "badge-secondary",
+
+                                                "delivered" =>
+                                                                    "badge-success",
+
+                                                "cancelled" =>
+                                                                    "badge-error",
+
+                                                "returned" =>
+                                                                    "badge-warning",
+
+                                                "refunded" =>
+                                                                    "badge-neutral",
+
+                                                _ =>
+                                                                    "badge-ghost"
+                                            };
+                                        }
+
+                                        <span class="badge @statusClass">
+                                            @order.Status.Replace("_", " ")
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Payment -->
+                                    <td>
+
+                                        @{
+                                            string paymentClass =
+                                            order.PaymentStatus switch
+                                            {
+                                                "paid" =>
+                                                                    "badge-success",
+
+                                                "pending_verification" =>
+                                                                    "badge-warning",
+
+                                                "failed" =>
+                                                                    "badge-error",
+
+                                                "refunded" =>
+                                                                    "badge-neutral",
+
+                                                _ =>
+                                                                    "badge-ghost"
+                                            };
+                                        }
+
+                                        <span class="badge @paymentClass">
+                                            @order.PaymentStatus.Replace("_", " ")
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Date -->
+                                    <td>
+                                        <div>
+                                            @order.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")
+                                        </div>
+
+                                        <div class="text-xs text-base-content/50">
+                                            @order.CreatedAt.ToLocalTime().ToString("hh:mm tt")
+                                        </div>
+                                    </td>
+
+
+                                    <!-- Action -->
+                                    <td>
+
+                                        <a asp-action="Details"
+                                           asp-route-id="@order.Id"
+                                           class="btn btn-sm btn-outline">
+
+                                            View
+
+                                        </a>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Pagination -->
+    @if (totalPages > 1)
+    {
+        <div class="flex justify-center mt-6">
+
+            <div class="join">
+
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    <a asp-action="Index"
+                       asp-route-page="@i"
+                       asp-route-search="@search"
+                       asp-route-status="@selectedStatus"
+                       asp-route-paymentStatus="@selectedPaymentStatus"
+                       class="join-item btn @(i == currentPage ? "btn-active" : "")">
+
+                        @i
+
+                    </a>
+                }
+
+            </div>
+
+        </div>
+    }
+
+</div>

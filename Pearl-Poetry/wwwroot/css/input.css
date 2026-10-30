@@ -1,0 +1,6 @@
+﻿@import "tailwindcss";
+@plugin "daisyui";
+@import "./admin.css";
+
+@source "../../Views/**/*.cshtml";
+@source "../../Areas/**/*.cshtml";

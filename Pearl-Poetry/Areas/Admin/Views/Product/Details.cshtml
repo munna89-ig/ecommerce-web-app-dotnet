@@ -1,0 +1,346 @@
+﻿@model Pearl_Poetry.ViewModels.Admin.Product.ProductDetailsViewModel
+
+@{
+    ViewData["Title"] = "Product Details";
+}
+
+<div class="max-w-6xl mx-auto">
+
+    <!-- HEADER -->
+
+    <div class="flex justify-between items-center mb-6">
+
+        <div>
+            <h1 class="text-3xl font-bold">
+                Product Details
+            </h1>
+
+            <p class="text-base-content/60">
+                View complete product information
+            </p>
+        </div>
+
+        <div class="flex gap-2">
+
+            <a asp-action="EditProduct"
+               asp-route-id="@Model.Id"
+               class="btn btn-primary">
+                Edit
+            </a>
+
+            <a asp-action="Index"
+               class="btn btn-outline">
+                Back
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- MAIN PRODUCT -->
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+
+        <!-- IMAGE -->
+
+        <div class="card bg-base-100 shadow-md">
+
+            <div class="card-body">
+
+                @if (!string.IsNullOrEmpty(
+                                Model.CoverImagePath))
+                {
+                    <img src="@Model.CoverImagePath"
+                         alt="@Model.Title"
+                         class="w-full rounded-xl object-cover" />
+                }
+                else
+                {
+                    <div class="h-72 bg-base-200 rounded-xl flex items-center justify-center">
+                        No Image
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+
+        <!-- INFORMATION -->
+
+        <div class="lg:col-span-2 card bg-base-100 shadow-md">
+
+            <div class="card-body">
+
+                <div class="flex justify-between">
+
+                    <div>
+
+                        <h2 class="text-2xl font-bold">
+                            @Model.Title
+                        </h2>
+
+                        <p class="text-base-content/60">
+                            @Model.Sku
+                        </p>
+
+                    </div>
+
+
+                    @if (Model.IsActive)
+                    {
+                        <span class="badge badge-success">
+                            Active
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-error">
+                            Inactive
+                        </span>
+                    }
+
+                </div>
+
+
+                <div class="divider"></div>
+
+
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-5">
+
+                    <div>
+                        <p class="text-sm text-base-content/60">
+                            Category
+                        </p>
+
+                        <p class="font-semibold">
+                            @(Model.CategoryName ?? "None")
+                        </p>
+                    </div>
+
+
+                    <div>
+                        <p class="text-sm text-base-content/60">
+                            Product Type
+                        </p>
+
+                        <p class="font-semibold">
+                            @Model.ProductType
+                        </p>
+                    </div>
+
+
+                    <div>
+                        <p class="text-sm text-base-content/60">
+                            Quantity
+                        </p>
+
+                        <p class="font-semibold">
+                            @Model.Quantity
+                        </p>
+                    </div>
+
+
+                    <div>
+                        <p class="text-sm text-base-content/60">
+                            Price
+                        </p>
+
+                        <p class="font-semibold">
+                            ৳ @Model.Price.ToString("N2")
+                        </p>
+                    </div>
+
+
+                    <div>
+                        <p class="text-sm text-base-content/60">
+                            Discount Price
+                        </p>
+
+                        <p class="font-semibold">
+                            @(Model.DiscountPrice.HasValue
+                                                        ? "৳ " + Model.DiscountPrice.Value.ToString("N2")
+                                                        : "No discount")
+                        </p>
+                    </div>
+
+
+                    <div>
+                        <p class="text-sm text-base-content/60">
+                            SKU
+                        </p>
+
+                        <p class="font-semibold">
+                            @Model.Sku
+                        </p>
+                    </div>
+
+                </div>
+
+
+                @if (Model.IsFeatured)
+                {
+                    <div class="mt-5">
+                        <span class="badge badge-warning">
+                            Featured Product
+                        </span>
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- DESCRIPTION -->
+
+    <div class="card bg-base-100 shadow-md mt-6">
+
+        <div class="card-body">
+
+            <h2 class="card-title">
+                Description
+            </h2>
+
+            @if (!string.IsNullOrWhiteSpace(
+                        Model.ShortDescription))
+            {
+                <p class="font-medium">
+                    @Model.ShortDescription
+                </p>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(
+                        Model.Description))
+            {
+                <div class="mt-3 whitespace-pre-line">
+                    @Model.Description
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+
+    <!-- VARIANTS -->
+    @if (Model.Variants.Any())
+    {
+        <div class="card bg-base-100 shadow-md mt-6">
+
+            <div class="card-body">
+
+                <h2 class="card-title">
+                    Variants
+                </h2>
+
+                <div class="overflow-x-auto">
+
+                    <table class="table">
+
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Color</th>
+                                <th>Size</th>
+                                <th>Price</th>
+                                <th>Discount</th>
+                                <th>Quantity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @foreach (var variant in Model.Variants)
+                            {
+                                <tr>
+
+                                    <td>
+                                        @variant.Sku
+                                    </td>
+
+                                    <td>
+                                        @variant.Color
+                                    </td>
+
+                                    <td>
+                                        @variant.Size
+                                    </td>
+
+                                    <td>
+                                        ৳ @variant.Price.ToString("N2")
+                                    </td>
+
+                                    <td>
+                                        @(variant.DiscountPrice.HasValue
+                                                                        ? "৳ " + variant.DiscountPrice.Value.ToString("N2")
+                                                                        : "-")
+                            </td>
+
+                                    <td>
+                                        @variant.Quantity
+                                    </td>
+
+                                    <td>
+                                @if (variant.IsActive)
+                                        {
+                                            <span class="badge badge-success">
+                                                Active
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-error">
+                                                Inactive
+                                            </span>
+                                        }
+                                    </td>
+
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+    }
+
+
+    <!-- ADDITIONAL IMAGES -->
+    @if (Model.Images.Any())
+    {
+        <div class="card bg-base-100 shadow-md mt-6">
+
+            <div class="card-body">
+
+                <h2 class="card-title">
+                    Product Images
+                </h2>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+                    @foreach (var image in Model.Images)
+                    {
+                        <img src="@image.ImagePath"
+                             class="w-full h-40 object-cover rounded-lg border"
+                             alt="@Model.Title" />
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+    }
+
+</div>

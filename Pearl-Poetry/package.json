@@ -1,0 +1,30 @@
+{
+  "name": "pearl-poetry",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nahianabir/Pearl-Poetry.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nahianabir/Pearl-Poetry/issues"
+  },
+  "homepage": "https://github.com/nahianabir/Pearl-Poetry#readme",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "daisyui": "^5.7.46",
+    "tailwindcss": "^4.3.3"
+  },
+  "scripts": {
+    "dev": "npx @tailwindcss/cli -i ./wwwroot/css/input.css -o ./wwwroot/css/site.css --watch",
+    "build": "npx @tailwindcss/cli -i ./wwwroot/css/input.css -o ./wwwroot/css/site.css"
+  }
+}

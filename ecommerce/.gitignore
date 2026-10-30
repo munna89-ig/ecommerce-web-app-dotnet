@@ -1,0 +1,9 @@
+﻿.vs/
+bin/
+obj/
+*.user
+*.pubxml.user
+*.PublishSettings
+Properties/PublishProfiles/
+Properties/ServiceDependencies/
+appsettings.Development.json

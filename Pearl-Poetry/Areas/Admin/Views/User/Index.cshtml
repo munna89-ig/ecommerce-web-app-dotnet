@@ -1,0 +1,166 @@
+@using Pearl_Poetry.Enums
+@using System.Security.Claims
+@model List<Pearl_Poetry.Data.Entities.User>
+@{
+    ViewData["Title"] = "Users";
+
+    var selectedRole = ViewBag.SelectedRole as UserRole?;
+    var selectedStatus = ViewBag.SelectedStatus as bool?;
+    int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int myId);
+}
+
+<link rel="stylesheet" href="~/css/users.css" asp-append-version="true" />
+
+<div class="usr-page">
+
+    <div class="usr-header">
+        <div>
+            <h1>Users</h1>
+            <p>@Model.Count user(s) found</p>
+        </div>
+        <a asp-action="Create" class="usr-btn usr-btn-primary">
+            <i class="fa-solid fa-user-plus"></i> Add User
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="usr-alert usr-alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="usr-alert usr-alert-error"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+    }
+
+    <!-- Stats -->
+    <div class="usr-stats">
+        <div class="usr-stat"><span>Total</span><strong>@Model.Count</strong></div>
+        <div class="usr-stat"><span>Customers</span><strong>@Model.Count(u => u.Role == UserRole.Customer)</strong></div>
+        <div class="usr-stat"><span>Admins</span><strong>@Model.Count(u => u.Role == UserRole.Admin)</strong></div>
+        <div class="usr-stat"><span>Inactive</span><strong>@Model.Count(u => u.IsActive != true)</strong></div>
+    </div>
+
+    <div class="usr-card">
+
+        <!-- Filters -->
+        <form method="get" asp-action="Index" class="usr-toolbar">
+            <div class="usr-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" name="search" value="@ViewBag.Search" placeholder="Search name, email or phone..." />
+            </div>
+
+            <select name="role" class="usr-select" onchange="this.form.submit()">
+                <option value="">All roles</option>
+                @foreach (UserRole r in Enum.GetValues(typeof(UserRole)))
+                {
+                    <option value="@r" selected="@(selectedRole == r)">@r</option>
+                }
+            </select>
+
+            <select name="isActive" class="usr-select" onchange="this.form.submit()">
+                <option value="">All status</option>
+                <option value="true" selected="@(selectedStatus == true)">Active</option>
+                <option value="false" selected="@(selectedStatus == false)">Inactive</option>
+            </select>
+
+            <button type="submit" class="usr-btn usr-btn-ghost">Filter</button>
+            <a asp-action="Index" class="usr-btn usr-btn-ghost">Reset</a>
+        </form>
+
+        @if (Model.Count == 0)
+        {
+            <div class="usr-empty">
+                <i class="fa-solid fa-users-slash"></i>
+                <p>No users found</p>
+            </div>
+        }
+        else
+        {
+            <div class="usr-table-wrap">
+                <table class="usr-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Phone</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var u in Model)
+                        {
+                            bool isMe = u.Id == myId;
+                            string roleClass = u.Role switch
+                            {
+                                UserRole.Admin => "usr-badge-admin",
+                                UserRole.Seller => "usr-badge-seller",
+                                _ => "usr-badge-customer"
+                            };
+
+                            <tr>
+                                <td>
+                                    <div class="usr-person">
+                                        <div class="usr-avatar">
+                                            @if (!string.IsNullOrWhiteSpace(u.ProfilePic))
+                                            {
+                                                <img src="@u.ProfilePic" alt="@u.Name" onerror="this.remove()" />
+                                            }
+                                            else
+                                            {
+                                                @u.Name.Substring(0, 1).ToUpper()
+                                            }
+                                        </div>
+                                        <div>
+                                            <div class="usr-name">
+                                                @u.Name
+                                                @if (isMe)
+                                                {
+                                                    <span class="usr-you">(you)</span>
+                                                }
+                                            </div>
+                                            <div class="usr-email">@u.Email</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="Phone">@(u.Phone ?? "—")</td>
+                                <td data-label="Role"><span class="usr-badge @roleClass">@u.Role</span></td>
+                                <td data-label="Status">
+                                    @if (u.IsActive == true)
+                                    {
+                                        <span class="usr-badge usr-badge-active">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="usr-badge usr-badge-inactive">Inactive</span>
+                                    }
+                                </td>
+                                <td data-label="Joined">@(u.CreatedAt?.ToLocalTime().ToString("dd MMM yyyy") ?? "—")</td>
+                                <td data-label="Actions">
+                                    <div class="usr-actions">
+                                        <a asp-action="Details" asp-route-id="@u.Id" title="View"><i class="fa-regular fa-eye"></i></a>
+                                        <a asp-action="Edit" asp-route-id="@u.Id" title="Edit"><i class="fa-solid fa-pen"></i></a>
+                                        <a asp-action="ResetPassword" asp-route-id="@u.Id" title="Reset password"><i class="fa-solid fa-key"></i></a>
+
+                                        @if (!isMe)
+                                        {
+                                            <form asp-action="ToggleStatus" asp-route-id="@u.Id" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" title="@(u.IsActive == true ? "Deactivate" : "Activate")">
+                                                    <i class="fa-solid @(u.IsActive == true ? "fa-user-lock" : "fa-user-check")"></i>
+                                                </button>
+                                            </form>
+
+                                            <a asp-action="Delete" asp-route-id="@u.Id" class="usr-danger" title="Delete"><i class="fa-solid fa-trash"></i></a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

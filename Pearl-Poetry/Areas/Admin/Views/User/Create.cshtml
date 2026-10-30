@@ -1,0 +1,82 @@
+﻿@using Pearl_Poetry.Enums
+@model Pearl_Poetry.Models.ViewModels.Admin.UserCreateViewModel
+@{
+    ViewData["Title"] = "Add User";
+}
+
+<link rel="stylesheet" href="~/css/users.css" asp-append-version="true" />
+
+<div class="usr-page">
+
+    <a asp-action="Index" class="usr-back"><i class="fa-solid fa-arrow-left"></i> Back to users</a>
+
+    <div class="usr-header">
+        <div>
+            <h1>Add User</h1>
+            <p>Create a new customer, seller or admin account.</p>
+        </div>
+    </div>
+
+    <div class="usr-card usr-form-card">
+        <form asp-action="Create" method="post" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="usr-alert usr-alert-error usr-validation-summary"></div>
+
+            <div class="usr-grid">
+                <div class="usr-field">
+                    <label asp-for="Name">Full Name <span>*</span></label>
+                    <input asp-for="Name" placeholder="e.g. Rahim Uddin" autocomplete="off" />
+                    <span asp-validation-for="Name"></span>
+                </div>
+
+                <div class="usr-field">
+                    <label asp-for="Email">Email <span>*</span></label>
+                    <input asp-for="Email" type="email" placeholder="user@example.com" autocomplete="off" />
+                    <span asp-validation-for="Email"></span>
+                </div>
+
+                <div class="usr-field">
+                    <label asp-for="Phone">Phone</label>
+                    <input asp-for="Phone" type="tel" placeholder="01XXXXXXXXX" />
+                    <span asp-validation-for="Phone"></span>
+                </div>
+
+                <div class="usr-field">
+                    <label asp-for="Role">Role <span>*</span></label>
+                    <select asp-for="Role" asp-items="Html.GetEnumSelectList<UserRole>()"></select>
+                    <span asp-validation-for="Role"></span>
+                </div>
+
+                <div class="usr-field">
+                    <label asp-for="Password">Password <span>*</span></label>
+                    <input asp-for="Password" placeholder="Min. 6 characters" autocomplete="new-password" />
+                    <span asp-validation-for="Password"></span>
+                </div>
+
+                <div class="usr-field">
+                    <label>&nbsp;</label>
+                    <div class="usr-inline" style="height:44px">
+                        <label class="usr-switch">
+                            <input asp-for="IsActive" type="checkbox" />
+                            <span class="usr-slider"></span>
+                        </label>
+                        <span>Account active</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="usr-form-foot">
+                <a asp-action="Index" class="usr-btn usr-btn-ghost">Cancel</a>
+                <button type="submit" class="usr-btn usr-btn-primary">
+                    <i class="fa-solid fa-user-plus"></i> Create User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+}

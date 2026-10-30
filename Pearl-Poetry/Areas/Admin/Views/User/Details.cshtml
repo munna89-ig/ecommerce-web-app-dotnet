@@ -1,0 +1,94 @@
+﻿@using Pearl_Poetry.Enums
+@using System.Security.Claims
+@model Pearl_Poetry.Data.Entities.User
+@{
+    ViewData["Title"] = "User Details";
+    int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int myId);
+    bool isMe = Model.Id == myId;
+
+    string roleClass = Model.Role switch
+    {
+        UserRole.Admin => "usr-badge-admin",
+        UserRole.Seller => "usr-badge-seller",
+        _ => "usr-badge-customer"
+    };
+}
+
+<link rel="stylesheet" href="~/css/users.css" asp-append-version="true" />
+
+<div class="usr-page">
+
+    <a asp-action="Index" class="usr-back"><i class="fa-solid fa-arrow-left"></i> Back to users</a>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="usr-alert usr-alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+    }
+
+    <div class="usr-card" style="max-width:820px">
+
+        <div class="usr-profile">
+            <div class="usr-avatar usr-avatar-lg">
+                @if (!string.IsNullOrWhiteSpace(Model.ProfilePic))
+                {
+                    <img src="@Model.ProfilePic" alt="@Model.Name" onerror="this.remove()" />
+                }
+                else
+                {
+                    @Model.Name.Substring(0, 1).ToUpper()
+                }
+            </div>
+            <div>
+                <h2>@Model.Name @if (isMe) {
+                <span class="usr-you">(you)</span>
+                                }
+</h2>
+                <p class="usr-email" style="font-size:14px">@Model.Email</p>
+                <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap">
+                    <span class="usr-badge @roleClass">@Model.Role</span>
+                    @if (Model.IsActive == true)
+                    {
+                        <span class="usr-badge usr-badge-active">Active</span>
+                    }
+                    else
+                    {
+                        <span class="usr-badge usr-badge-inactive">Inactive</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="usr-info">
+            <div><span>User ID</span><strong>#@Model.Id</strong></div>
+            <div><span>Phone</span><strong>@(Model.Phone ?? "—")</strong></div>
+            <div><span>Joined</span><strong>@(Model.CreatedAt?.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt") ?? "—")</strong></div>
+            <div><span>Last updated</span><strong>@(Model.UpdatedAt?.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt") ?? "—")</strong></div>
+            <div><span>Email verified</span><strong>@(Model.EmailVerifiedAt.HasValue ? "Yes" : "No")</strong></div>
+            <div><span>Phone verified</span><strong>@(Model.PhoneVerifiedAt.HasValue ? "Yes" : "No")</strong></div>
+        </div>
+
+        <div class="usr-detail-actions">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="usr-btn usr-btn-primary">
+                <i class="fa-solid fa-pen"></i> Edit
+            </a>
+            <a asp-action="ResetPassword" asp-route-id="@Model.Id" class="usr-btn usr-btn-ghost">
+                <i class="fa-solid fa-key"></i> Reset Password
+            </a>
+
+            @if (!isMe)
+            {
+                <form asp-action="ToggleStatus" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="usr-btn usr-btn-ghost">
+                        <i class="fa-solid @(Model.IsActive == true ? "fa-user-lock" : "fa-user-check")"></i>
+                        @(Model.IsActive == true ? "Deactivate" : "Activate")
+                    </button>
+                </form>
+
+                <a asp-action="Delete" asp-route-id="@Model.Id" class="usr-btn usr-btn-danger">
+                    <i class="fa-solid fa-trash"></i> Delete
+                </a>
+            }
+        </div>
+    </div>
+</div>

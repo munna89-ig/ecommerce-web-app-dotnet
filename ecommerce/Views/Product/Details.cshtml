@@ -1,0 +1,158 @@
+﻿@model Pearl_Poetry.ViewModels.Shop.ShopProductDetailsViewModel
+@using System.Globalization
+@using System.Text.Json
+@{
+    ViewData["Title"] = Model.Title;
+    ViewData["ShowChrome"] = true;
+
+    // price shown before the script runs (the script re-draws it for the chosen variant)
+    decimal startPrice = Model.Price;
+    decimal startSelling = (Model.DiscountPrice.HasValue && Model.DiscountPrice > 0 && Model.DiscountPrice < Model.Price)
+        ? Model.DiscountPrice.Value : Model.Price;
+
+    // data for product-details.js  (System.Text.Json escapes < > & so it is safe inside <script>)
+    var json = JsonSerializer.Serialize(new
+    {
+        productId = Model.Id,
+        basePrice = Model.Price,
+        baseDiscount = Model.DiscountPrice,
+        baseStock = Model.Stock,
+        variants = Model.Variants.Select(v => new
+        {
+            id = v.Id,
+            color = v.Color,      // null when empty  => group hidden / chip says "Standard"
+            size = v.Size,
+            price = v.Price,
+            discount = v.DiscountPrice,
+            stock = v.Stock
+        })
+    });
+}
+
+@functions {
+    static string M(decimal v) => "৳ " + v.ToString("N2", CultureInfo.InvariantCulture);
+}
+
+<div class="shop-container">
+
+    <nav class="breadcrumb">
+        <a href="/">Home</a><span>/</span>
+        @if (!string.IsNullOrWhiteSpace(Model.CategoryName))
+        {
+            <a href="#">@Model.CategoryName</a>
+        
+            <span>/</span>
+        }
+        <span>@Model.Title</span>
+    </nav>
+
+    <div class="pd-grid">
+
+        <!-- gallery -->
+        <div class="pd-gallery">
+            <div class="pd-main">
+                <img id="pdMainImage" src="@Model.CoverImage" alt="@Model.Title"
+                     onerror="this.onerror=null;this.src='/images/categories/fashion.jpg';">
+            </div>
+
+            @if (Model.Images.Count > 1)
+            {
+                <div class="pd-thumbs">
+                    @for (int i = 0; i < Model.Images.Count; i++)
+                    {
+                        <button type="button" class="pd-thumb @(i == 0 ? "is-active" : "")" data-thumb="@Model.Images[i]" aria-label="Image @(i + 1)">
+                            <img src="@Model.Images[i]" alt=""
+                                 onerror="this.onerror=null;this.src='/images/categories/fashion.jpg';">
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- info -->
+        <div class="pd-info">
+            <h1>@Model.Title</h1>
+
+            <div class="pd-meta">
+                @if (!string.IsNullOrWhiteSpace(Model.Sku))
+                {
+                    <span>Product Code: <b>@Model.Sku</b></span>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.CategoryName))
+                {
+                    <span>Category: <b>@Model.CategoryName</b></span>
+                }
+            </div>
+
+            <div class="pp-price">
+                <span class="pp-now" id="pdPriceNow">@M(startSelling)</span>
+                <span class="pp-old" id="pdPriceOld" hidden>@M(startPrice)</span>
+                <span class="pp-save" id="pdPriceSave" hidden></span>
+            </div>
+
+            <div class="pd-stock" id="pdStock"></div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.ShortDescription))
+            {
+                <p class="pd-short">@Model.ShortDescription</p>
+            }
+
+            @* Color / Size groups only exist when at least one variant really has that value *@
+            @if (Model.HasColors)
+            {
+                <div class="pd-group">
+                    <div class="pd-group-title">Color <span id="pdColorLabel"></span></div>
+                    <div class="pd-options" id="pdColors"></div>
+                </div>
+            }
+
+            @if (Model.HasSizes)
+            {
+                <div class="pd-group">
+                    <div class="pd-group-title">Size <span id="pdSizeLabel"></span></div>
+                    <div class="pd-options" id="pdSizes"></div>
+                </div>
+            }
+
+            <div class="pd-group">
+                <div class="pd-group-title">Quantity</div>
+                <div class="qty">
+                    <button type="button" id="pdQtyMinus" aria-label="Decrease">&minus;</button>
+                    <input type="number" id="pdQty" value="1" min="1" inputmode="numeric">
+                    <button type="button" id="pdQtyPlus" aria-label="Increase">+</button>
+                </div>
+            </div>
+
+            <div class="pd-actions">
+                <button type="button" class="btn btn-outline" id="pdAdd" disabled>
+                    <i class="fa-solid fa-cart-shopping"></i> Add to Cart
+                </button>
+
+                <form id="pdBuyForm" asp-controller="Checkout" asp-action="BuyNow" method="post">
+                    <input type="hidden" name="productId" value="@Model.Id" />
+                    <input type="hidden" name="variantId" id="pdVariantId" value="" />
+                    <input type="hidden" name="quantity" id="pdQuantityField" value="1" />
+                    <button type="submit" class="btn btn-primary" id="pdBuy" disabled>Buy Now</button>
+                </form>
+
+                <button type="button" class="pd-wish @(Model.InWishlist ? "is-active" : "")" data-wish="@Model.Id" aria-label="Wishlist">
+                    <i class="@(Model.InWishlist ? "fa-solid" : "fa-regular") fa-heart"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        <section class="pd-desc">
+            <h2>Description</h2>
+            <p>@Model.Description</p>
+        </section>
+    }
+</div>
+
+<script type="application/json" id="pdData">@Html.Raw(json)</script>
+
+@section Scripts {
+    <script src="~/js/product-details.js" asp-append-version="true"></script>
+}

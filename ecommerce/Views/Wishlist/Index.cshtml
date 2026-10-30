@@ -1,0 +1,93 @@
+﻿@model Pearl_Poetry.ViewModels.Shop.WishlistViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "My Wishlist";
+    ViewData["ShowChrome"] = true;
+}
+
+@functions {
+    static string M(decimal v) => "৳ " + v.ToString("N2", CultureInfo.InvariantCulture);
+}
+
+<div class="shop-container">
+
+    <nav class="breadcrumb">
+        <a href="/">Home</a><span>/</span><span>Wishlist</span>
+    </nav>
+
+    <h1 class="shop-title">
+        My Wishlist
+        @* site.js updates this number when a heart is clicked *@
+        <small>(<span data-wish-count>@Model.Items.Count</span> items)</small>
+    </h1>
+
+    <!-- empty state (shown by site.js when the last card is removed) -->
+    <div id="wlEmpty" class="empty-state @(Model.Items.Count == 0 ? "" : "is-empty")">
+        <i class="fa-regular fa-heart"></i>
+        <h2>Your wishlist is empty</h2>
+        <p>Tap the heart on any product to save it here for later.</p>
+        <a href="/" class="btn btn-primary">Continue Shopping</a>
+    </div>
+
+    <div id="wlGrid" class="wl-grid @(Model.Items.Count == 0 ? "is-empty" : "")">
+        @foreach (var item in Model.Items)
+        {
+            var detailsUrl = Url.Action("Details", "Product", new { id = item.ProductId });
+
+            <div class="wl-card">
+
+                <div class="wl-img">
+                    <a href="@detailsUrl">
+                        <img src="@item.ImagePath" alt="@item.Title" loading="lazy"
+                             onerror="this.onerror=null;this.src='/images/categories/fashion.jpg';">
+                    </a>
+
+                    @* data-wish-remove => site.js removes the card after un-hearting *@
+                    <button type="button" class="wl-heart is-active"
+                            data-wish="@item.ProductId" data-wish-remove
+                            aria-label="Remove from wishlist" title="Remove from wishlist">
+                        <i class="fa-solid fa-heart"></i>
+                    </button>
+                </div>
+
+                <div class="wl-body">
+                    <h3><a href="@detailsUrl">@item.Title</a></h3>
+
+                    <div class="pp-price">
+                        @if (item.HasVariants)
+                        {
+                            <small style="color:var(--muted)">From</small>
+                        }
+                        <span class="pp-now">@M(item.Price)</span>
+                        @if (item.OriginalPrice.HasValue)
+                        {
+                            <span class="pp-old">@M(item.OriginalPrice.Value)</span>
+                        }
+                    </div>
+
+                    @if (!item.InStock)
+                    {
+                        <span class="wl-out"><i class="fa-solid fa-circle-exclamation"></i> Out of stock</span>
+                        <button type="button" class="btn btn-ghost btn-block" disabled>Out of Stock</button>
+                    }
+                    else if (item.HasVariants)
+                    {
+                        @* color / size must be chosen on the product page *@
+                        <a href="@detailsUrl" class="btn btn-outline btn-block">
+                            <i class="fa-solid fa-sliders"></i> Choose Options
+                        </a>
+                    }
+                    else
+                    {
+                        @* handled by site.js (quickAdd) *@
+                        <button type="button" class="btn btn-primary btn-block"
+                                data-add-cart="@item.ProductId" data-has-variants="false"
+                                data-href="@detailsUrl">
+                            <i class="fa-solid fa-cart-shopping"></i> Add to Cart
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>

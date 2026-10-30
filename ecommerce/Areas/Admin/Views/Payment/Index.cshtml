@@ -1,0 +1,367 @@
+﻿@model Pearl_Poetry.ViewModels.Admin.Payment.PaymentListPageViewModel
+@{
+    ViewData["Title"] = "Payments";
+
+    string returnUrl = Context.Request.Path + Context.Request.QueryString;
+
+    string Money(decimal v) => "৳ " + v.ToString("N2");
+
+    (string Css, string Text) StatusBadge(string s) => s switch
+    {
+        "pending_verification" => ("badge-warning", "Pending verification"),
+        "paid" => ("badge-success", "Verified"),
+        "failed" => ("badge-error", "Rejected"),
+        "refunded" => ("badge-neutral", "Refunded"),
+        _ => ("badge-ghost", s.Replace("_", " "))
+    };
+
+    string MethodLabel(string m) => m.ToLower() switch
+    {
+        "bkash" => "bKash",
+        "nagad" => "Nagad",
+        "cod" => "Cash on Delivery",
+        _ => m
+    };
+}
+
+<div class="p-6">
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">Payments</h1>
+            <p class="text-base-content/60">Verify bKash payments sent by customers.</p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success mb-4"><span>@TempData["Success"]</span></div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-error mb-4"><span>@TempData["Error"]</span></div>
+    }
+
+    <!-- Summary cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+
+        <a asp-action="Index" asp-route-status="pending_verification"
+           class="card bg-base-100 shadow-sm hover:shadow-md transition border-l-4 border-warning">
+            <div class="card-body p-5">
+                <p class="text-sm text-base-content/60">Waiting for verification</p>
+                <p class="text-3xl font-bold">@Model.PendingCount</p>
+                <p class="text-sm text-base-content/60">@Money(Model.PendingAmount)</p>
+            </div>
+        </a>
+
+        <a asp-action="Index" asp-route-status="paid"
+           class="card bg-base-100 shadow-sm hover:shadow-md transition border-l-4 border-success">
+            <div class="card-body p-5">
+                <p class="text-sm text-base-content/60">Verified amount</p>
+                <p class="text-3xl font-bold">@Money(Model.VerifiedAmount)</p>
+                <p class="text-sm text-base-content/60">All time</p>
+            </div>
+        </a>
+
+        <a asp-action="Index" asp-route-status="failed"
+           class="card bg-base-100 shadow-sm hover:shadow-md transition border-l-4 border-error">
+            <div class="card-body p-5">
+                <p class="text-sm text-base-content/60">Rejected payments</p>
+                <p class="text-3xl font-bold">@Model.RejectedCount</p>
+                <p class="text-sm text-base-content/60">Wrong / fake TrxID</p>
+            </div>
+        </a>
+
+        <a asp-controller="Order" asp-action="Index" asp-route-paymentStatus="unpaid"
+           class="card bg-base-100 shadow-sm hover:shadow-md transition border-l-4 border-info">
+            <div class="card-body p-5">
+                <p class="text-sm text-base-content/60">Cash on delivery (unpaid)</p>
+                <p class="text-3xl font-bold">@Model.CodUnpaidOrders</p>
+                <p class="text-sm text-base-content/60">Orders &rarr;</p>
+            </div>
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-100 shadow-sm mb-6">
+        <div class="card-body">
+            <form method="get" asp-action="Index" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+
+                <div class="md:col-span-2">
+                    <label class="label"><span class="label-text">Search</span></label>
+                    <input type="text" name="search" value="@Model.Search"
+                           placeholder="Order no, TrxID, name, phone..."
+                           class="input input-bordered w-full" />
+                </div>
+
+                <div>
+                    <label class="label"><span class="label-text">Status</span></label>
+                    <select name="status" class="select select-bordered w-full">
+                        <option value="">All statuses</option>
+                        <option value="pending_verification" selected="@(Model.Status == "pending_verification")">Pending verification</option>
+                        <option value="paid" selected="@(Model.Status == "paid")">Verified</option>
+                        <option value="failed" selected="@(Model.Status == "failed")">Rejected</option>
+                        <option value="refunded" selected="@(Model.Status == "refunded")">Refunded</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="label"><span class="label-text">Method</span></label>
+                    <select name="method" class="select select-bordered w-full">
+                        <option value="">All methods</option>
+                        @foreach (var m in Model.Methods)
+                        {
+                            <option value="@m" selected="@(Model.Method == m.ToLower())">@MethodLabel(m)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="md:col-span-4 flex gap-2">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a asp-action="Index" class="btn btn-ghost">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body p-0">
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Customer</th>
+                            <th>Method / TrxID</th>
+                            <th>Sent from</th>
+                            <th class="text-right">Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th class="text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Payments.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-base-content/60 py-10">
+                                    No payments found.
+                                </td>
+                            </tr>
+                        }
+
+                        @foreach (var p in Model.Payments)
+                        {
+                            var badge = StatusBadge(p.Status);
+
+                            <tr class="@(p.Status == "pending_verification" ? "bg-warning/5" : "")">
+
+                                <!-- Order -->
+                                <td>
+                                    <a asp-controller="Order" asp-action="Details" asp-route-id="@p.OrderId"
+                                       class="link link-hover font-semibold">#@p.OrderNumber</a>
+                                    <div class="text-xs text-base-content/50">Order: @p.OrderStatus</div>
+                                </td>
+
+                                <!-- Customer -->
+                                <td>
+                                    <div class="font-medium">@p.CustomerName</div>
+                                    <div class="text-xs text-base-content/60">
+                                        @p.CustomerPhone
+                                        @if (p.IsGuest)
+                                        {
+                                            <span class="badge badge-ghost badge-xs ml-1">Guest</span>
+                                        }
+                                    </div>
+                                </td>
+
+                                <!-- Method / TrxID -->
+                                <td>
+                                    <span class="badge badge-outline badge-sm">@MethodLabel(p.PaymentMethod)</span>
+                                    @if (!string.IsNullOrWhiteSpace(p.TransactionId))
+                                    {
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <code class="text-sm font-semibold">@p.TransactionId</code>
+                                            <button type="button" class="btn btn-ghost btn-xs" title="Copy TrxID"
+                                                    data-copy="@p.TransactionId">
+                                                <i class="fa-regular fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </td>
+
+                                <!-- Sender -->
+                                <td>
+                                    <div>@(p.SenderPhone ?? "-")</div>
+                                    @if (!string.IsNullOrWhiteSpace(p.SenderName))
+                                    {
+                                        <div class="text-xs text-base-content/60">@p.SenderName</div>
+                                    }
+                                </td>
+
+                                <!-- Amount -->
+                                <td class="text-right">
+                                    <div class="font-semibold">@Money(p.Amount)</div>
+                                    @if (p.AmountMismatch)
+                                    {
+                                        <div class="text-xs text-error" title="Order total is @Money(p.OrderTotal)">
+                                            ⚠ Order total @Money(p.OrderTotal)
+                                        </div>
+                                    }
+                                </td>
+
+                                <!-- Status -->
+                                <td>
+                                    <span class="badge @badge.Css whitespace-nowrap">@badge.Text</span>
+                                    @if (!string.IsNullOrWhiteSpace(p.VerifiedByName))
+                                    {
+                                        <div class="text-xs text-base-content/50 mt-1">by @p.VerifiedByName</div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(p.VerificationNote))
+                                    {
+                                        <div class="text-xs text-base-content/60 mt-1 max-w-[180px] truncate" title="@p.VerificationNote">
+                                            “@p.VerificationNote”
+                                        </div>
+                                    }
+                                </td>
+
+                                <!-- Date -->
+                                <td class="whitespace-nowrap">
+                                    <div>@(p.CreatedAt?.ToLocalTime().ToString("dd MMM yyyy") ?? "-")</div>
+                                    <div class="text-xs text-base-content/50">@(p.CreatedAt?.ToLocalTime().ToString("hh:mm tt"))</div>
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="text-right whitespace-nowrap">
+                                    @if (p.CanVerify)
+                                    {
+                                        <button type="button" class="btn btn-success btn-sm"
+                                                data-pay-action="verify"
+                                                data-url="@Url.Action("Verify", "Payment", new { area = "Admin", id = p.Id })"
+                                                data-order="@p.OrderNumber"
+                                                data-trx="@p.TransactionId"
+                                                data-amount="@Money(p.Amount)">
+                                            Verify
+                                        </button>
+                                    }
+                                    @if (p.CanReject)
+                                    {
+                                        <button type="button" class="btn btn-error btn-outline btn-sm"
+                                                data-pay-action="reject"
+                                                data-url="@Url.Action("Reject", "Payment", new { area = "Admin", id = p.Id })"
+                                                data-order="@p.OrderNumber"
+                                                data-trx="@p.TransactionId"
+                                                data-amount="@Money(p.Amount)">
+                                            Reject
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="flex justify-center mt-6">
+            <div class="join">
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    <a asp-action="Index"
+                       asp-route-page="@i"
+                       asp-route-search="@Model.Search"
+                       asp-route-status="@Model.Status"
+                       asp-route-method="@Model.Method"
+                       class="join-item btn btn-sm @(i == Model.Page ? "btn-active btn-primary" : "")">@i</a>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Verify / Reject dialog -->
+<dialog id="payModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg" id="payModalTitle">Verify payment</h3>
+
+        <div class="bg-base-200 rounded-lg p-3 my-4 text-sm grid grid-cols-3 gap-2">
+            <div><span class="text-base-content/60">Order</span><br /><b id="payModalOrder"></b></div>
+            <div><span class="text-base-content/60">TrxID</span><br /><b id="payModalTrx"></b></div>
+            <div><span class="text-base-content/60">Amount</span><br /><b id="payModalAmount"></b></div>
+        </div>
+
+        <p class="text-sm text-base-content/70 mb-3" id="payModalHelp"></p>
+
+        <form method="post" id="payModalForm" asp-antiforgery="true">
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+            <label class="label"><span class="label-text" id="payModalNoteLabel">Note (optional)</span></label>
+            <textarea name="note" id="payModalNote" rows="3" maxlength="500"
+                      class="textarea textarea-bordered w-full"></textarea>
+
+            <div class="modal-action">
+                <button type="button" class="btn btn-ghost" onclick="document.getElementById('payModal').close()">Cancel</button>
+                <button type="submit" class="btn" id="payModalSubmit">Confirm</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+@section Scripts {
+    <script>
+        (function () {
+            const modal = document.getElementById('payModal');
+            const form = document.getElementById('payModalForm');
+            const title = document.getElementById('payModalTitle');
+            const help = document.getElementById('payModalHelp');
+            const note = document.getElementById('payModalNote');
+            const noteLabel = document.getElementById('payModalNoteLabel');
+            const submit = document.getElementById('payModalSubmit');
+
+            document.addEventListener('click', function (e) {
+                // ---- copy TrxID ----
+                const copy = e.target.closest('[data-copy]');
+                if (copy) {
+                    navigator.clipboard?.writeText(copy.dataset.copy);
+                    copy.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    setTimeout(() => copy.innerHTML = '<i class="fa-regular fa-copy"></i>', 1200);
+                    return;
+                }
+
+                // ---- open verify / reject dialog ----
+                const btn = e.target.closest('[data-pay-action]');
+                if (!btn) return;
+
+                const isVerify = btn.dataset.payAction === 'verify';
+
+                form.action = btn.dataset.url;
+                document.getElementById('payModalOrder').textContent = '#' + btn.dataset.order;
+                document.getElementById('payModalTrx').textContent = btn.dataset.trx || '-';
+                document.getElementById('payModalAmount').textContent = btn.dataset.amount;
+
+                title.textContent = isVerify ? 'Verify payment' : 'Reject payment';
+                help.textContent = isVerify
+                    ? 'Check your bKash merchant account: the TrxID and the amount must match. The order will be marked as paid (and confirmed if it is still pending).'
+                    : 'The order will be marked as "payment failed". Tell the customer why, e.g. "TrxID not found".';
+
+                noteLabel.textContent = isVerify ? 'Note (optional)' : 'Reason (required)';
+                note.value = '';
+                note.required = !isVerify;
+                note.placeholder = isVerify ? 'e.g. Checked in bKash app' : 'e.g. TrxID not found / amount is less';
+
+                submit.textContent = isVerify ? 'Verify payment' : 'Reject payment';
+                submit.className = 'btn ' + (isVerify ? 'btn-success' : 'btn-error');
+
+                modal.showModal();
+                note.focus();
+            });
+        })();
+    </script>
+}

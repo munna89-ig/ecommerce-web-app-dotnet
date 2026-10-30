@@ -1,0 +1,148 @@
+@model List<Pearl_Poetry.Data.Entities.Category>
+@{
+    ViewData["Title"] = "Categories";
+}
+
+<link rel="stylesheet" href="~/css/Category.css" />
+
+<div class="cat-page">
+
+    <div class="cat-header">
+        <div>
+            <h1>Categories</h1>
+            <p>@Model.Count total categories</p>
+        </div>
+        <button type="button" class="cat-btn-primary" id="openAddModal">
+            <i class="fa-solid fa-plus"></i> Add Category
+        </button>
+    </div>
+
+    <div class="cat-card">
+
+        <div class="cat-toolbar">
+            <div class="cat-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="catSearch" placeholder="Search categories...">
+            </div>
+        </div>
+
+        <div class="cat-table-wrap">
+            <table class="cat-table" id="catTable">
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                        string img = string.IsNullOrWhiteSpace(c.ImagePath)
+                        ? "/images/categories/fashion.jpg"
+                        : c.ImagePath;
+
+                        <tr data-id="@c.Id"
+                            data-name="@c.Name"
+                            data-description="@c.Description"
+                            data-active="@(c.IsActive == true ? "true" : "false")"
+                            data-image="@img">
+                            <td>
+                                <img src="@img" alt="@c.Name" class="cat-img"
+                                     onerror="this.onerror=null;this.src='/images/categories/fashion.jpg';">
+                            </td>
+                            <td>
+                                <div class="cat-name">@c.Name</div>
+                                <div class="cat-slug">@c.Slug</div>
+                            </td>
+                            <td class="cat-desc">@(string.IsNullOrWhiteSpace(c.Description) ? "—" : c.Description)</td>
+                            <td>
+                                @if (c.IsActive == true)
+                                {
+                                    <span class="cat-badge cat-badge-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="cat-badge cat-badge-muted">Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="cat-actions">
+                                    <button type="button" class="cat-edit" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                                    <button type="button" class="cat-delete" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.Count == 0)
+        {
+            <div class="cat-empty">
+                <i class="fa-solid fa-folder-open"></i>
+                <p>No categories yet</p>
+            </div>
+        }
+    </div>
+</div>
+
+
+<div class="cat-modal-overlay" id="catModal">
+    <div class="cat-modal">
+
+        <div class="cat-modal-head">
+            <h2 id="modalTitle">Add Category</h2>
+            <button type="button" class="cat-modal-close" id="closeModal" aria-label="Close">&times;</button>
+        </div>
+
+        <form id="catForm" enctype="multipart/form-data">
+            <input type="hidden" id="catId" name="id" value="0" />
+
+            <div class="cat-field">
+                <label for="catName">Name <span>*</span></label>
+                <input type="text" id="catName" name="name" maxlength="100" required />
+            </div>
+
+            <div class="cat-field">
+                <label for="catDesc">Description</label>
+                <textarea id="catDesc" name="description" rows="3"></textarea>
+            </div>
+
+            <div class="cat-field">
+                <label>Image</label>
+                <div class="cat-upload">
+                    <div class="cat-preview" id="catPreview">
+                        <i class="fa-regular fa-image"></i>
+                    </div>
+                    <div>
+                        <label for="catImage" class="cat-choose">Choose from PC</label>
+                        <input type="file" id="catImage" name="image" accept=".jpg,.jpeg,.png,.webp" hidden />
+                        <p class="cat-hint" id="fileName">No file chosen</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cat-field cat-inline">
+                <label class="cat-switch">
+                    <input type="checkbox" id="catActive" checked />
+                    <span class="cat-slider"></span>
+                </label>
+                <span>Active</span>
+            </div>
+
+            <p class="cat-error" id="catError"></p>
+
+            <div class="cat-modal-foot">
+                <button type="button" class="cat-btn-ghost" id="cancelModal">Cancel</button>
+                <button type="submit" class="cat-btn-primary" id="saveBtn">Save</button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script src="~/js/Category.js"></script>

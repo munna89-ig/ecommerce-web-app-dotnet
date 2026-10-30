@@ -1,0 +1,114 @@
+@using Microsoft.EntityFrameworkCore
+@using Pearl_Poetry.Data
+@using Pearl_Poetry.Services.Interfaces
+@inject EcommerceSystemContext Db
+@inject ICartService CartSvc
+@inject IWishlistService WishSvc
+@{
+    var navCategories = await Db.Categories
+        .AsNoTracking()
+        .Where(c => c.IsActive == true)
+        .OrderBy(c => c.Name)
+        .ToListAsync();
+
+    int cartCount = await CartSvc.GetCountAsync();
+    int wishCount = await WishSvc.GetCountAsync();
+
+    // ---------- logo + site name from Admin > Settings ----------
+    var siteSettings = await Db.Settings.AsNoTracking().OrderBy(s => s.Id).FirstOrDefaultAsync();
+
+    string siteName = string.IsNullOrWhiteSpace(siteSettings?.SiteName) ? "Pearl Poetry" : siteSettings!.SiteName!;
+
+    string logo = "/images/logo.png";   // fallback when no logo is uploaded
+    if (!string.IsNullOrWhiteSpace(siteSettings?.LogoPath))
+    {
+        var path = siteSettings!.LogoPath!.Trim();
+        logo = path.StartsWith("/") || path.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? path
+            : "/images/settings/" + path;
+    }
+
+    bool isLoggedIn = User.Identity?.IsAuthenticated == true;
+    string searchText = Context.Request.Query["q"].ToString();
+}
+
+<header class="site-header">
+    <div class="top-bar">
+        <div class="top-right">
+            <span>Dark Mode</span>
+            <label class="switch">
+                <input type="checkbox">
+                <span class="slider"></span>
+            </label>
+            <span>EN <i class="fa-solid fa-angle-down"></i></span>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="logo">
+            <a href="/" title="@siteName">
+                <img src="@logo" alt="@siteName"
+                     onerror="this.onerror=null;this.src='/images/logo.png';">
+            </a>
+        </div>
+
+        <div class="menu">
+            <a href="/">Home</a>
+
+            <div class="category-dropdown">
+                <a asp-area="" asp-controller="Product" asp-action="Search">
+                    Categories
+                    <i class="fa-solid fa-angle-down"></i>
+                </a>
+
+                <div class="dropdown-menu">
+                    <a asp-area="" asp-controller="Product" asp-action="Search">All Products</a>
+
+                    @foreach (var c in navCategories)
+                    {
+                        <a asp-area="" asp-controller="Product" asp-action="Search"
+                           asp-route-category="@c.Slug">@c.Name</a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Search => /Product/Search?q=... -->
+        <form class="search-box" action="/Product/Search" method="get" role="search">
+            <input type="search" name="q" value="@searchText"
+                   placeholder="Search for Products" autocomplete="off" aria-label="Search products">
+            <button type="submit" aria-label="Search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </form>
+
+        <div class="nav-icons">
+            <a href="/Wishlist" class="nav-icon-link cart" aria-label="Wishlist">
+                <i class="fa-regular fa-heart"></i>
+                <span data-wish-count class="@(wishCount == 0 ? "is-empty" : "")">@wishCount</span>
+            </a>
+
+            <a href="/Cart" class="nav-icon-link cart" aria-label="Cart">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span data-cart-count class="@(cartCount == 0 ? "is-empty" : "")">@cartCount</span>
+            </a>
+
+            @if (isLoggedIn)
+            {
+                <a asp-area="" asp-controller="Account" asp-action="Profile"
+                   class="nav-icon-link" aria-label="My profile" title="@User.Identity!.Name">
+                    <i class="fa-solid fa-user"></i>
+                </a>
+            }
+            else
+            {
+                <a asp-area="" asp-controller="Account" asp-action="Login"
+                   class="nav-icon-link" aria-label="Login" title="Login">
+                    <i class="fa-regular fa-user"></i>
+                </a>
+            }
+
+            <i class="fa-solid fa-bars"></i>
+        </div>
+    </nav>
+</header>

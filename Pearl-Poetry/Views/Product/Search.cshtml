@@ -1,0 +1,229 @@
+﻿@model Pearl_Poetry.ViewModels.Shop.ProductSearchViewModel
+@{
+    ViewData["Title"] = Model.Heading;
+    ViewData["ShowChrome"] = true;
+
+    // default sort is not written in the url
+    string? sortParam = Model.Sort == "newest" ? null : Model.Sort;
+
+    string Link(string? q, string? category, int page = 1) =>
+        Url.Action("Search", "Product", new
+        {
+            q,
+            category,
+            sort = sortParam,
+            page = page > 1 ? page : (int?)null
+        })!;
+
+    int from = Math.Max(1, Model.Page - 2);
+    int to = Math.Min(Model.TotalPages, Model.Page + 2);
+}
+
+@functions {
+    static string M(decimal v) => "৳ " + v.ToString("N2");
+}
+
+<link rel="stylesheet" href="~/css/search.css" asp-append-version="true" />
+
+<div class="shop-container">
+
+    <nav class="breadcrumb">
+        <a href="/">Home</a><span>/</span>
+        @if (Model.CategoryName != null && Model.Query != null)
+        {
+            <a href="@Link(null, Model.CategorySlug)">@Model.CategoryName</a>
+        
+            <span>/</span>
+            <span>Search</span>
+        }
+        else if (Model.CategoryName != null)
+        {
+            <span>@Model.CategoryName</span>
+        }
+        else
+        {
+            <span>@(Model.Query != null ? "Search" : "All Products")</span>
+        }
+    </nav>
+
+    <div class="sr-layout">
+
+        <!-- ================= SIDEBAR ================= -->
+        <aside class="sr-side">
+            <div class="sr-box">
+                <h3>Categories</h3>
+
+                <div class="sr-cats">
+                    <a href="@Link(Model.Query, null)" class="@(Model.CategorySlug == null ? "is-active" : "")">
+                        <span>All Products</span>
+                        <small>@Model.AllCount</small>
+                    </a>
+
+                    @foreach (var c in Model.Categories)
+                    {
+                        bool active = string.Equals(c.Slug, Model.CategorySlug, StringComparison.OrdinalIgnoreCase);
+
+                        <a href="@Link(Model.Query, c.Slug)" class="@(active ? "is-active" : "")">
+                            <span>@c.Name</span>
+                            <small>@c.Count</small>
+                        </a>
+                    }
+                </div>
+            </div>
+        </aside>
+
+        <!-- ================= RESULTS ================= -->
+        <section class="sr-main">
+
+            <div class="sr-top">
+                <div>
+                    <h1 class="shop-title">@Model.Heading</h1>
+                    <p class="sr-count">@Model.TotalItems product@(Model.TotalItems == 1 ? "" : "s") found</p>
+                </div>
+
+                <form method="get" action="@Url.Action("Search", "Product")" class="sr-sort">
+                    @if (Model.Query != null)
+                    {
+                        <input type="hidden" name="q" value="@Model.Query" />
+                    }
+                    @if (Model.CategorySlug != null)
+                    {
+                        <input type="hidden" name="category" value="@Model.CategorySlug" />
+                    }
+
+                    <label for="srSort">Sort by</label>
+                    <select id="srSort" name="sort" onchange="this.form.submit()">
+                        <option value="newest" selected="@(Model.Sort == "newest")">Newest</option>
+                        <option value="price_asc" selected="@(Model.Sort == "price_asc")">Price: Low to High</option>
+                        <option value="price_desc" selected="@(Model.Sort == "price_desc")">Price: High to Low</option>
+                        <option value="name" selected="@(Model.Sort == "name")">Name: A - Z</option>
+                    </select>
+                    <noscript><button type="submit" class="btn btn-ghost">Go</button></noscript>
+                </form>
+            </div>
+
+            @if (Model.HasFilter)
+            {
+                <div class="sr-chips">
+                    @if (Model.Query != null)
+                    {
+                        <a href="@Link(null, Model.CategorySlug)" class="sr-chip" title="Remove search">
+                            "@Model.Query" <i class="fa-solid fa-xmark"></i>
+                        </a>
+                    }
+                    @if (Model.CategoryName != null)
+                    {
+                        <a href="@Link(Model.Query, null)" class="sr-chip" title="Remove category">
+                            @Model.CategoryName <i class="fa-solid fa-xmark"></i>
+                        </a>
+                    }
+                    <a href="@Link(null, null)" class="sr-clear">Clear all</a>
+                </div>
+            }
+
+            @if (Model.MatchedCategories.Count > 0 && Model.CategorySlug == null)
+            {
+                <p class="sr-note">
+                    <i class="fa-solid fa-layer-group"></i>
+                    Including all products from
+                    @for (int i = 0; i < Model.MatchedCategories.Count; i++)
+                    {
+                        var mc = Model.MatchedCategories[i];
+                        <a href="@Link(null, mc.Slug)">@mc.Name</a>
+                        @(i < Model.MatchedCategories.Count - 1 ? ", " : "")
+                    }
+                </p>
+            }
+
+            @if (Model.Products.Count == 0)
+            {
+                <div class="empty-state">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <h2>No products found</h2>
+                    <p>Try a different word, or browse a category below.</p>
+
+                    <a href="@Link(null, null)" class="btn btn-primary">See All Products</a>
+
+                    <div class="sr-suggest">
+                        @foreach (var c in Model.Categories.Where(c => c.Count > 0).Take(8))
+                        {
+                            <a href="@Link(null, c.Slug)" class="sr-chip">@c.Name</a>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="items-grid">
+                    @foreach (var p in Model.Products)
+                    {
+                        var url = Url.Action("Details", "Product", new { id = p.Id });
+
+                        <div class="item-card">
+                            <div class="item-img">
+                                <a href="@url" class="card-link">
+                                    <img src="@p.CoverImage" alt="@p.Title" loading="lazy"
+                                         onerror="this.onerror=null;this.src='/images/categories/fashion.jpg';">
+                                </a>
+
+                                <div class="item-actions">
+                                    <button type="button" aria-label="Wishlist" data-wish="@p.Id"
+                                            class="@(p.InWishlist ? "is-active" : "")">
+                                        <i class="@(p.InWishlist ? "fa-solid" : "fa-regular") fa-heart"></i>
+                                    </button>
+                                    <button type="button" aria-label="Add to cart" data-add-cart="@p.Id"
+                                            data-has-variants="@(p.HasVariants ? "true" : "false")" data-href="@url">
+                                        <i class="fa-solid fa-cart-shopping"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="item-info">
+                                <h3><a href="@url" class="title-link">@p.Title</a></h3>
+                                @if (!string.IsNullOrWhiteSpace(p.Sku))
+                                {
+                                    <p class="item-code">Product Code: @p.Sku</p>
+                                }
+
+                                <div class="item-price">
+                                    @if (p.HasDiscount)
+                                    {
+                                        <span class="old">@M(p.Price)</span>
+                                    }
+                                    <span class="now">@M(p.SellingPrice)</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (Model.TotalPages > 1)
+                {
+                    <nav class="sr-pages" aria-label="Pages">
+                        <a href="@Link(Model.Query, Model.CategorySlug, Model.Page - 1)"
+                           class="@(Model.Page == 1 ? "is-disabled" : "")" aria-label="Previous">
+                            <i class="fa-solid fa-angle-left"></i>
+                        </a>
+
+                        @for (int i = from; i <= to; i++)
+                        {
+                            if (i == Model.Page)
+                            {
+                                <span class="is-active">@i</span>
+                            }
+                            else
+                            {
+                                <a href="@Link(Model.Query, Model.CategorySlug, i)">@i</a>
+                            }
+                        }
+
+                        <a href="@Link(Model.Query, Model.CategorySlug, Model.Page + 1)"
+                           class="@(Model.Page == Model.TotalPages ? "is-disabled" : "")" aria-label="Next">
+                            <i class="fa-solid fa-angle-right"></i>
+                        </a>
+                    </nav>
+                }
+            }
+        </section>
+    </div>
+</div>

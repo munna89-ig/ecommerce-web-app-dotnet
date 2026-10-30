@@ -1,0 +1,241 @@
+﻿@using Pearl_Poetry.Data.Entities
+@{
+    ViewData["Title"] = "Home";
+    ViewData["ShowChrome"] = true;   // layout => _Navbar + _Footer + Home.css + Shop.css + csrf token
+
+    var banners = (ViewBag.Banners as List<Banner>) ?? new List<Banner>();
+    var categories = (ViewBag.Categories as List<Category>) ?? new List<Category>();
+    var newArrivals = (ViewBag.NewArrivals as List<Product>) ?? new List<Product>();
+    var allItems = (ViewBag.AllItems as List<Product>) ?? new List<Product>();
+    var variantIds = (ViewBag.VariantProductIds as HashSet<int>) ?? new HashSet<int>();
+    var wishIds = (ViewBag.WishlistIds as HashSet<int>) ?? new HashSet<int>();
+
+    const string Fallback = "/images/categories/fashion.jpg";
+
+    bool HasDiscount(Product p) => p.DiscountPrice.HasValue && p.DiscountPrice > 0 && p.DiscountPrice < p.Price;
+
+    // "banner1.jpeg" or "/images/banner/x.jpg" => usable url
+    string BannerUrl(string? path) =>
+        string.IsNullOrWhiteSpace(path) ? Fallback
+        : path.StartsWith("/") || path.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? path
+        : "/images/banner/" + path;
+}
+
+<!-- Hero (Admin > Banners) -->
+<section class="hero">
+    @if (banners.Count == 0)
+    {
+        @* no banners in the database yet => default images *@
+        <div class="banner">
+            <img src="~/images/banner/banner1.jpeg" alt="Banner 1">
+        </div>
+        <div class="banner">
+            <img src="~/images/banner/banner2.png" alt="Banner 2">
+        </div>
+        <div class="banner">
+            <img src="~/images/banner/banner3.png" alt="Banner 3">
+        </div>
+    }
+    else
+    {
+        foreach (var b in banners)
+        {
+            string img = BannerUrl(b.ImagePath);
+            string alt = string.IsNullOrWhiteSpace(b.Title) ? "Banner" : b.Title!;
+
+            <div class="banner">
+                @if (!string.IsNullOrWhiteSpace(b.LinkUrl))
+                {
+                    <a href="@b.LinkUrl" style="display:block;width:100%;height:100%;" aria-label="@alt">
+                        <img src="@img" alt="@alt"
+                             onerror="this.onerror=null;this.src='@Fallback';">
+                    </a>
+                }
+                else
+                {
+                    <img src="@img" alt="@alt"
+                         onerror="this.onerror=null;this.src='@Fallback';">
+                }
+            </div>
+        }
+    }
+</section>
+
+
+<!-- Categories -->
+<section class="categories">
+    <h2>Shop by Categories</h2>
+    <p class="sub">Discover your perfect pair with our curated categories</p>
+
+    <div class="category-grid">
+
+        @foreach (var item in categories)
+        {
+            string img = string.IsNullOrWhiteSpace(item.ImagePath)
+            ? Fallback
+            : (item.ImagePath.StartsWith("/") || item.ImagePath.StartsWith("http")
+            ? item.ImagePath
+            : "/images/categories/" + item.ImagePath);
+
+            <a asp-controller="Product" asp-action="Search" asp-route-category="@item.Slug" class="category-item">
+                <div class="category-img">
+                    <img src="@img" alt="@item.Name"
+                         onerror="this.onerror=null;this.src='@Fallback';">
+                </div>
+                <span>@item.Name</span>
+            </a>
+        }
+
+    </div>
+</section>
+
+
+<!-- New Arrivals -->
+<section class="new-arrivals">
+
+    <div class="section-head">
+        <h2>New Arrivals</h2>
+        <a asp-controller="Product" asp-action="Search">View All</a>
+    </div>
+
+    <div class="slider-wrap">
+
+        <button type="button" class="slide-btn prev" id="naPrev" aria-label="Previous">
+            <i class="fa-solid fa-arrow-left"></i>
+        </button>
+
+        <div class="product-track" id="naTrack">
+
+            @foreach (var p in newArrivals)
+            {
+                string cover = string.IsNullOrWhiteSpace(p.CoverImagePath) ? Fallback : p.CoverImagePath;
+                bool inWish = wishIds.Contains(p.Id);
+                bool hasVar = variantIds.Contains(p.Id);
+                string url = Url.Action("Details", "Product", new { id = p.Id })!;
+
+                <div class="product-card">
+
+                    <div class="product-img">
+                        <a href="@url" class="card-link">
+                            <img src="@cover" alt="@p.Title"
+                                 onerror="this.onerror=null;this.src='@Fallback';">
+                        </a>
+
+                        <div class="product-actions">
+                            <button type="button" aria-label="Wishlist" data-wish="@p.Id"
+                                    class="@(inWish ? "is-active" : "")">
+                                <i class="@(inWish ? "fa-solid" : "fa-regular") fa-heart"></i>
+                            </button>
+                            <button type="button" aria-label="Add to cart" data-add-cart="@p.Id"
+                                    data-has-variants="@(hasVar ? "true" : "false")" data-href="@url">
+                                <i class="fa-solid fa-cart-shopping"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="product-info">
+                        <h3><a href="@url" class="title-link">@p.Title</a></h3>
+                        <p class="code">Product Code: @p.Sku</p>
+
+                        <div class="price">
+                            @if (HasDiscount(p))
+                            {
+                                <span class="old">৳ @(p.Price.ToString("N2"))</span>
+                                <span class="now">৳ @(p.DiscountPrice!.Value.ToString("N2"))</span>
+                            }
+                            else
+                            {
+                                <span class="now">৳ @(p.Price.ToString("N2"))</span>
+                            }
+                        </div>
+                    </div>
+
+                </div>
+            }
+
+        </div>
+
+        <button type="button" class="slide-btn next" id="naNext" aria-label="Next">
+            <i class="fa-solid fa-arrow-right"></i>
+        </button>
+
+    </div>
+</section>
+
+
+<!-- All Items -->
+<section class="all-items">
+
+    <div class="section-head">
+        <h2>All Items</h2>
+    </div>
+
+    <div class="items-grid" id="itemsGrid">
+
+        @{
+            int aiIndex = 0;
+        }
+        @foreach (var p in allItems)
+        {
+            aiIndex++;
+
+            string cover = string.IsNullOrWhiteSpace(p.CoverImagePath) ? Fallback : p.CoverImagePath;
+            bool inWish = wishIds.Contains(p.Id);
+            bool hasVar = variantIds.Contains(p.Id);
+            string url = Url.Action("Details", "Product", new { id = p.Id })!;
+            string extraClass = aiIndex > 10 ? "extra-item hidden" : "";
+
+            <div class="item-card @extraClass">
+
+                <div class="item-img">
+                    <a href="@url" class="card-link">
+                        <img src="@cover" alt="@p.Title"
+                             onerror="this.onerror=null;this.src='@Fallback';">
+                    </a>
+
+                    <div class="item-actions">
+                        <button type="button" aria-label="Wishlist" data-wish="@p.Id"
+                                class="@(inWish ? "is-active" : "")">
+                            <i class="@(inWish ? "fa-solid" : "fa-regular") fa-heart"></i>
+                        </button>
+                        <button type="button" aria-label="Add to cart" data-add-cart="@p.Id"
+                                data-has-variants="@(hasVar ? "true" : "false")" data-href="@url">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="item-info">
+                    <h3><a href="@url" class="title-link">@p.Title</a></h3>
+                    <p class="item-code">Product Code: @p.Sku</p>
+
+                    <div class="item-price">
+                        @if (HasDiscount(p))
+                        {
+                            <span class="old">৳ @(p.Price.ToString("N2"))</span>
+                            <span class="now">৳ @(p.DiscountPrice!.Value.ToString("N2"))</span>
+                        }
+                        else
+                        {
+                            <span class="now">৳ @(p.Price.ToString("N2"))</span>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+    @if (allItems.Count > 10)
+    {
+        <div class="see-more-wrap">
+            <button type="button" id="seeMoreBtn" class="see-more-btn">See More</button>
+        </div>
+    }
+
+</section>
+
+@section Scripts {
+    <script src="~/js/Home.js" asp-append-version="true"></script>
+}
